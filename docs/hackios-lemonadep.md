@@ -130,14 +130,17 @@ then storage reads and matched iOS userspace. The PoC's USB cable-event reset an
 display artifacts remain open issues. Do not overwrite its opluslog ESP or an
 existing HFS userdata installation while testing this firmware integration.
 
-## Publishing the prepared branch
+## Repository and branch
 
-The session's GitHub integration rejected fork creation with HTTP 403,
-`Resource not accessible by integration`. No remote fork or branch was created.
-After creating a fork under blahajcoding, this local checkout can publish with:
+The integration lives on `hackios-lemonadep` in
+[blahajcoding/HackiOS-UEFI-lemonadep](https://github.com/blahajcoding/HackiOS-UEFI-lemonadep/tree/hackios-lemonadep).
+The fork's `main` branch retains upstream state. The integration deliberately
+uses the pinned HackiOS Mu base above rather than incorporating later upstream
+KEP and submodule changes without validation.
 
 ```sh
-git push origin hackios-lemonadep
+git clone --branch hackios-lemonadep https://github.com/blahajcoding/HackiOS-UEFI-lemonadep.git
+cd HackiOS-UEFI-lemonadep
 ```
 
 The accompanying patch archive can also be applied to a checkout at the pinned
