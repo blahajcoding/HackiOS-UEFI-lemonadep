@@ -4,6 +4,8 @@ This branch integrates a source-only OnePlus 9 Pro (8 GB variant) board package
 with the HackiOS XNUP firmware handoff. It has **not** been built into a complete
 firmware image or booted on hardware. It does not implement the XNU hardware port.
 
+For the next device session, read the [agent handoff](AGENT-HANDOFF-lemonadep.md).
+
 ## Provenance
 
 | Input | Pinned revision |

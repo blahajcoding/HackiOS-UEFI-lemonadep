@@ -1,5 +1,6 @@
 > **hackios-lemonadep branch:** source-only OnePlus 9 Pro firmware integration.
 > See [build instructions and validation status](docs/hackios-lemonadep.md).
+> Start a device session with the [agent handoff](docs/AGENT-HANDOFF-lemonadep.md).
 > This branch has not been boot-tested.
 
 # Project Silicium UEFI for ARM64-Based Devices
