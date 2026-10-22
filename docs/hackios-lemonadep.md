@@ -12,12 +12,16 @@ For the next device session, read the [agent handoff](AGENT-HANDOFF-lemonadep.md
 | --- | --- |
 | Project-Silicium/Mu-Silicium | `e51cd877e31c8fbb322032dc4cb6715e83d25ad3` |
 | blahajcoding/op9pro-mainline-poc | `46ecf3cadd1b09ed944e4b0c64c13aa8f07962cd` |
-| oosexgang/hackios-xnu-kernel | `8e61187098f2c26c5daee8f9f72b6416aa64b9ab` |
+| blahajcoding/hackios-xnu-kernel (fork of oosexgang) | `8e61187098f2c26c5daee8f9f72b6416aa64b9ab` |
 
 The board package preserves the PoC's own-firmware memory/configuration tables
 and driver lists. Its hardware results apply to that PoC, not this integration.
 Adaptations to the pinned Mu base include the TOML schema, SMBIOS PCD, package
 paths, and removal of obsolete SchedulerInterfaceAddr/InitCardSlot PCD settings.
+Port work should use the user's [kernel/loader fork](https://github.com/blahajcoding/hackios-xnu-kernel)
+and [userland fork](https://github.com/blahajcoding/hackios-xnu-userland).
+Their inspected `main` heads still match the original pinned upstream snapshots;
+keep upstream attribution and inspect subsequent fork changes before building.
 No Linux GPL driver patches were imported. Upstream copyright/license notices
 remain in place; the PoC describes its UEFI work as under upstream terms.
 

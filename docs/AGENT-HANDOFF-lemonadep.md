@@ -1,6 +1,6 @@
 # Agent handoff: start the HackiOS lemonadep device port
 
-Prepared 22 October 2026. Read this before executing any device commands.
+Prepared and updated 22 October 2026. Read this before executing any device commands.
 
 ## Objective and first action
 
@@ -26,14 +26,30 @@ to UEFI, bundled as `loader.efi`, not a claim that the full XNU port already wor
 | Firmware integration | [HackiOS-UEFI-lemonadep, branch hackios-lemonadep](https://github.com/blahajcoding/HackiOS-UEFI-lemonadep/tree/hackios-lemonadep), code publication `8c8ce8ed3c632538bfa380655efee724341c8704` |
 | Mu base | `Project-Silicium/Mu-Silicium` at `e51cd877e31c8fbb322032dc4cb6715e83d25ad3` |
 | User's Linux/UEFI PoC | [op9pro-mainline-poc](https://github.com/blahajcoding/op9pro-mainline-poc/tree/46ecf3cadd1b09ed944e4b0c64c13aa8f07962cd), `46ecf3cadd1b09ed944e4b0c64c13aa8f07962cd` |
-| HackiOS kernel/loader | [hackios-xnu-kernel](https://github.com/oosexgang/hackios-xnu-kernel/tree/8e61187098f2c26c5daee8f9f72b6416aa64b9ab), `8e61187098f2c26c5daee8f9f72b6416aa64b9ab` |
-| HackiOS userland | [hackios-xnu-userland](https://github.com/oosexgang/hackios-xnu-userland/tree/906425b75e02b4f99eb5d7bb1ef7c9583472d772), `906425b75e02b4f99eb5d7bb1ef7c9583472d772` |
+| HackiOS kernel/loader | [hackios-xnu-kernel](https://github.com/blahajcoding/hackios-xnu-kernel/tree/8e61187098f2c26c5daee8f9f72b6416aa64b9ab), `8e61187098f2c26c5daee8f9f72b6416aa64b9ab` |
+| HackiOS userland | [hackios-xnu-userland](https://github.com/blahajcoding/hackios-xnu-userland/tree/906425b75e02b4f99eb5d7bb1ef7c9583472d772), `906425b75e02b4f99eb5d7bb1ef7c9583472d772` |
 | Separate shim/HFS baseline | [ios-lemonadep](https://github.com/blahajcoding/ios-lemonadep/tree/0ac36c8ffa1f9d17d62483c41e09ca201a327cc2), `0ac36c8ffa1f9d17d62483c41e09ca201a327cc2`; read its AGENTS.md and newest NOTES.md entries |
 
 Use the firmware integration branch, not the fork's upstream `main`. Check remote
 heads for subsequent user changes before editing; preserve existing work and do
 not force-push. The pinned snapshots above are a reproducibility baseline, not an
 instruction to discard later fixes. Keep submodule revisions pinned.
+
+**Use the user's forks for port work:**
+
+```sh
+git clone https://github.com/blahajcoding/hackios-xnu-kernel.git
+git clone https://github.com/blahajcoding/hackios-xnu-userland.git
+```
+
+Both forks' `main` heads matched the pinned revisions above when checked on
+22 October 2026. Keep `oosexgang` as upstream provenance/remotes, not the push
+destination. Create a dedicated lemonadep port branch in each fork as needed;
+keep the existing main/redwood paths intact. HackiOS normally combines the two
+repos into one working tree using `common/setup.sh` and a separate userland git
+directory. Inspect that script before using it: its upstream defaults must not
+silently replace the user's fork remotes or discard changes. Separate clones
+above are for initial inspection, not a substitute for its expected build layout.
 
 **Verified here:** the source integration is committed and pushed. Fourteen host
 test groups passed locally and in [GitHub run 39747592746](https://github.com/blahajcoding/HackiOS-UEFI-lemonadep/actions/runs/39747592746).
@@ -53,6 +69,98 @@ It reports framebuffer artifacts and USB cable-event freezes/resets. The separat
 XNU shim notes report minimal PID 1, then a UFS-root attempt aborting in an
 inherited USB probe, followed by source fixes. Do not promote these reports into
 results for this integration.
+
+## Carry forward the ios-lemonadep NOTES.md findings
+
+Read the [live notes](https://github.com/blahajcoding/ios-lemonadep/blob/main/NOTES.md)
+and [AGENTS.md](https://github.com/blahajcoding/ios-lemonadep/blob/main/AGENTS.md)
+again at session start. This summary was checked against NOTES.md at
+[`0ac36c8ffa1f`](https://github.com/blahajcoding/ios-lemonadep/blob/0ac36c8ffa1f9d17d62483c41e09ca201a327cc2/NOTES.md).
+Its top handoff is the current task description, but later-dated observations
+also occur near the end. Resolve chronology and source/artifact hashes; do not
+read it as one consistent register dump. Much of the middle is **sweet/SM7150**
+history and must not supply lemonadep constants or recovery instructions.
+
+### Latest recorded state and build references
+
+- The 21 October t6 report records XNU on lemonadep reaching the tiny `md0` init
+  as PID 1, periodic liveness messages, and SGI1. This is stronger than an early
+  banner, but is not evidence of Apple's launchd, SpringBoard, or an EFI boot.
+- The top handoff records an HFSX root already flashed to the maintainer phone's
+  `userdata`: a 16 GiB image, 4 KiB filesystem blocks, about 11.7 GiB occupied,
+  **unjournaled**. It records a 102.1 GiB partition and 768 MiB max download.
+  Preserve that installation if it is still on this device; re-query current
+  capacities. Earlier entries saying no writes occurred or backups were absent
+  are historical, not the present device's state. Do not repeat the flash recipe.
+- Its `rd=ufsroot0` attempt found userdata, then faulted in
+  `_sweet_usb_probe+0x12c` while reading an SM7150 DWC3 offset, with
+  `ESR=0x96000010`. The overlay disables that call for LEMONADEP. Touch/keys
+  returning without a fault does **not** qualify those drivers for this board.
+- The top note calls [run 39544982671](https://github.com/blahajcoding/ios-lemonadep/actions/runs/39544982671)
+  pending for commit `07328f2`; its API status is now **completed/success**.
+  The later pmap-fix commit `0ac36c8ffa1f` also has a successful
+  [run 39709786288](https://github.com/blahajcoding/ios-lemonadep/actions/runs/39709786288).
+  These statuses/head SHAs were verified on 22 October; build logs, target
+  configuration, artifact contents and device boots were not revalidated here.
+  If using a shim artifact, verify it is `kernel.development.lemonadep`, inspect
+  included patches and its hash, and check artifact availability before relying
+  on old commands. A successful workflow is not a successful HFS/launchd boot.
+
+### Debugging lessons to preserve across the new boot path
+
+| Finding in notes | Consequence for this port |
+| --- | --- |
+| Later screen observations correct active FB to `0xe4d00000`, 1080x2400, stride 4320; earlier entries use `0xe4000000` or report native 1440x3216 | Obtain UEFI GOP/runtime scanout anew. Distinguish reserved splash area, active buffer and native panel geometry. A valid RAM write to the wrong FB address can be invisible without faulting. |
+| Early console mapping missed the offset inside a 32 MiB block; an alias/TLB issue was investigated in QEMU | Preserve the in-block offset, correct cache attributes, barriers and required TLB maintenance. A screen frozen at early stage 8 does not by itself prove the CPU stopped there. Requalify these transitions under UEFI. |
+| An early marker started beyond the visible buffer | For this 1080x2400/4320 mode, the row-2368 offset is `10229760`; `10368000` is the buffer end. Recompute from actual geometry rather than copying offsets blindly. |
+| Shim CNTV was left armed at handoff; guards/quiescence were added | Control inherited timer/IRQ state at the actual handoff. Prove repeated interrupt delivery, not merely pending/enabled bits. |
+| CNTV INTID 27 reportedly delivered 30 IRQs/300 ms; SGI1 delivered 10/10; CNTFRQ 19.2 MHz | Useful regression targets for the same shim context, not proof of XNU reinitialization or UEFI state. Sweet's timer INTID 19 is wrong for this recorded lemonadep setup. |
+| A reported GICD_CTLR of `0x53` has DS set; older sweet explanations assume DS=0 | Read the actual security/interface state. Do not change DS or copy secure-Group0 explanations between contexts. IAR reads acknowledge interrupts; they are not passive diagnostics. |
+| Shim entry reported EL1/A55, SMC PSCI, 40-bit PA, 16 KiB support | Retain these as source-labelled observations; measure UEFI CurrentEL, PSCI and affinities. The notes contain conflicting early affinity reports. |
+| High-PA execution failed with MMU disabled in the recorded ABL state; an MMU-on identity-entry path was used | Audit TCR/TTBR/MAIR/SCTLR, executable mappings, stacks/vectors and cache synchronization as a unit. Do not declare MMU-on mandatory for every UEFI handoff from this shim-specific result. AT S1E1R does not prove instruction-execute permission. |
+| A diagnostic reset wrote sweet's `0x146aa65c` cookie and externally aborted | Do not import that raw reset path. Use only qualified firmware/PSCI reset behavior and retain a manual recovery route. |
+| Early UFS capacity arithmetic disagreed with GPT/userdata size | Reconcile READ CAPACITY, sector size, LUN, GPT bounds and partition size. Do not infer safety from one successful GPT or READ(10) operation. High-PA DMA and writes remain separate qualifications. |
+
+The shim's provisional XNU arena was `[0x100000000, 0x140000000)` (1 GiB).
+Its boot metadata and test root belong within that layout with allocator headroom;
+`0xf0000000` is outside it. **This firmware branch's XNUP staging reservation at
+0xf0000000 is a separate region, not XNU's managed arena.** The adapted EFI loader
+must claim its own suitable memory and avoid both firmware and XNUP. Do not copy
+reported totals such as 7 GiB, 5015 MiB, or high-address endpoints as interchangeable
+RAM-bank sizes; the notes explicitly question some of their arithmetic.
+
+### Source fixes and shim-only procedures
+
+- Review `xnu/patches/0083-pmap-sync-page-attributes-64bit-pa.patch`: a 32-bit page
+  number shifted before widening truncated PAs at/above 4 GiB. `ptoa(pp)` fixes
+  that call. HackiOS's pinned patch has an equivalent widen-before-shift fix;
+  compare actual sources and preserve one correct implementation, not two patches
+  applied blindly. The shim patch does not mean all physical RAM begins at 4 GiB.
+- `tools/lemonadep_overlay.py` generates 0082 against the full 0001..0081 series,
+  including staged dependencies. Older advice to use only 0001..0025 is not an
+  accurate description of the current generated patch. Keep generator/patch
+  consistent; do not widen SWEET guards to run unqualified peripherals.
+- The notes report a fault on `CNTP_CTL_EL0` access in that boot context and a
+  LEMONADEP guard. Preserve its rationale without claiming EL1 physical timers
+  are architecturally unavailable on every SM8350 boot path.
+- `tools/lem-boot.sh` addresses a reported narrow ABL fastboot timing window after
+  reboot. It is a reference if that symptom recurs, not a reason to replace this
+  branch's version-3 packaging with the shim's version-2 image format.
+- QEMU must use a QEMU ADT (`tools/mkadt.py --qemu` in the shim repo); a phone ADT
+  can fabricate a GICR failure. QEMU does not qualify Qualcomm XPUs, panel, ABL or
+  device reset behavior. Review/remove hard-coded vector trampolines and stale
+  BRK probes before treating a test artifact as production code.
+- The notes' small-root smoke-test arguments include `rd=md0`, `cpus=1`,
+  `sweetlog=0`, `ufsrw=0`, `-enable_kprintf_spam`, `serial=3`, and `keepsyms=1`.
+  These are the **shim kernel's** controls, not a validated HackiOS command line
+  and not a substitute for disabling the EFI loader's independent log writes.
+- Local paths such as `/home/venus/dtb`, `/tmp/opencode`, IPSW/SSD locations and
+  CI artifact directories are historical. Locate and hash current inputs. Keep
+  20H392 HFS artifacts separate from the 20F66 HackiOS experiment.
+
+Reproduce the known shim milestone only if needed as a regression comparison;
+its historical failures need not be rediscovered to start the EFI port. Record
+which previous fix was retained, superseded, or remains unqualified in each path.
 
 ## Architecture and current implementation
 
