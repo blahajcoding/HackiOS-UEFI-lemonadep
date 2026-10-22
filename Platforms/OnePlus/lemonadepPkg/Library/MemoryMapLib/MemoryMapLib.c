@@ -68,7 +68,16 @@ gMemoryDescriptor[] = {
   {"RAM B2 Mid2",      0xE1600000, 0x02700000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK_XN},
   {"DBI Dump",         0xE3D00000, 0x00F00000, NoHob,  MMAP_IO, INITIALIZED, Conv,   UNCACHED_UNBUFFERED_XN},
   {"Display Reserved", 0xE4D00000, 0x02400000, AddMem, MEM_RES, SYS_MEM_CAP, Reserv, WRITE_THROUGH_XN},
+#if defined(HACKIOS_ENABLE) && HACKIOS_ENABLE
+  // HackiOS fixed-address ABI, carved from the PoC's conventional-memory row.
+  // This reservation is required before DXE allocation. Hardware qualification
+  // against the actual firmware/variant remains mandatory.
+  {"RAM B2 High Lo",   0xE7100000, 0x08F00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,   WRITE_BACK_XN},
+  {"XNU Payload",      0xF0000000, 0x04000000, AddMem, SYS_MEM, SYS_MEM_CAP, Reserv, WRITE_BACK_XN},
+  {"RAM B2 High Hi",   0xF4000000, 0x18C000000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,  WRITE_BACK_XN},
+#else
   {"RAM B2 High",      0xE7100000, 0x198F00000, AddMem, SYS_MEM, SYS_MEM_CAP, Conv,  WRITE_BACK_XN},
+#endif
 
   // Other Memory Regions
   {"IMEM Base",        0x14680000, 0x00040000, NoHob,  MMAP_IO, INITIALIZED, Conv,   NS_DEVICE},

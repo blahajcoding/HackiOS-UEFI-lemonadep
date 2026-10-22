@@ -14,6 +14,7 @@
 #
 ################################################################################
 [Defines]
+  DEFINE HACKIOS_ENABLE = 0
   PLATFORM_NAME                  = lemonadep
   PLATFORM_GUID                  = 852438DA-FB03-4EE1-8F2D-1B3DB2575C03
   PLATFORM_VERSION               = 0.1
@@ -88,3 +89,6 @@
   # Ram Manager (Null - avoid Qualcomm RamManagerLib that needs RAM Partition Protocol)
   #
   RamManagerLib|SiliciumNullPkg/Library/RamManagerLibNull/RamManagerLibNull.inf
+
+[BuildOptions]
+  *_CLANGPDB_AARCH64_CC_FLAGS = -DHACKIOS_ENABLE=$(HACKIOS_ENABLE)

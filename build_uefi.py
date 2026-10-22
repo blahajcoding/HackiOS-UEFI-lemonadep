@@ -13,6 +13,7 @@ import coloredlogs
 import argparse
 import logging
 import tomllib
+from Resources.Scripts import hackios_payload
 
 #
 # Logger
@@ -46,6 +47,8 @@ class BuildContext:
     enable_secureboot: bool
     cleanup:           bool
     update:            bool
+    hackios_payload:   str | None = None
+    hackios_loader_manifest: str | None = None
 
 def setup_logger ():
     global logger
@@ -81,6 +84,9 @@ def parse_arguments () -> BuildContext:
     parser.add_argument ("-c", "--clean",             action="store_true",                                       help="Removes Old Build Files and Starts a Clean Build.")
     parser.add_argument ("-u", "--update",            action="store_true",                                       help="Updates your Local Repo before Building.")
 
+    parser.add_argument ("--hackios-payload", help="Validated XNUP container (lemonadep only)")
+    parser.add_argument ("--hackios-loader-manifest", help="Board, SHA256 and no-storage-writes declaration for loader.efi")
+
     # Parse Script Arguments
     args = parser.parse_args ()
 
@@ -91,7 +97,9 @@ def parse_arguments () -> BuildContext:
         build_mode        = args.release,
         enable_secureboot = args.enable_secureboot,
         cleanup           = args.clean,
-        update            = args.update
+        update            = args.update,
+        hackios_payload   = args.hackios_payload,
+        hackios_loader_manifest = args.hackios_loader_manifest
     )
 
 def get_device_package_path (device: str) -> Path | None:
@@ -180,7 +188,7 @@ def update_local_repo () -> bool:
 
     return True
 
-def compile_boot_shim (boot_shim_config: dict, fd_config: dict) -> bool:
+def compile_boot_shim (boot_shim_config: dict, fd_config: dict, payload_size: int = 0) -> bool:
     # Get FD Details
     fd_base = hex (fd_config.get ("base"))
     fd_size = hex (fd_config.get ("size"))
@@ -193,7 +201,9 @@ def compile_boot_shim (boot_shim_config: dict, fd_config: dict) -> bool:
         "make",
         f"REQUIRES_KERNEL_HEADER={int (requires_kernel_header)}",
         f"FD_BASE={fd_base}",
-        f"FD_SIZE={fd_size}"
+        f"FD_SIZE={fd_size}",
+        f"HACKIOS_ENABLE={int(payload_size != 0)}",
+        f"XNUP_SIZE={payload_size}"
     ]
 
     # Compile Boot Shim
@@ -228,7 +238,8 @@ def compile_uefi (ctx: BuildContext, fd_config: dict, script_path: Path) -> bool
         f"FD_BASE={fd_base}",
         f"FD_SIZE={fd_size}",
         f"FD_BLOCKS={fd_blocks}",
-        f"DEVICE_MODEL={ctx.device_model}"
+        f"DEVICE_MODEL={ctx.device_model}",
+        f"HACKIOS_ENABLE={int(ctx.hackios_payload is not None)}"
     ]
 
     # Compile UEFI
@@ -254,7 +265,13 @@ def create_android_boot_img (ctx: BuildContext, image_kernel_config: dict, image
 
         try:
             # Read File Content
-            combined_data = boot_shim_payload.read_bytes () + uefi_fd.read_bytes ()
+            if ctx.hackios_payload:
+                payload = Path(ctx.hackios_payload).read_bytes()
+                hackios_payload.validate_loader(payload, ctx.hackios_loader_manifest)
+                combined_data = hackios_payload.combine_image(
+                    boot_shim_payload.read_bytes(), uefi_fd.read_bytes(), payload)
+            else:
+                combined_data = boot_shim_payload.read_bytes () + uefi_fd.read_bytes ()
 
             # Write Combined File Content
             boot_shim_fd.write_bytes (combined_data)
@@ -441,6 +458,18 @@ def main ():
         logger.error (f"There is no Config File in \"{RESOURCE_CONFIGS_PATH}\" for \"{ctx.device}\"!")
         sys.exit (1)
 
+    if ctx.hackios_payload or ctx.hackios_loader_manifest:
+        try:
+            if not ctx.hackios_payload or not ctx.hackios_loader_manifest:
+                raise ValueError("both --hackios-payload and --hackios-loader-manifest are required")
+            if ctx.update:
+                raise ValueError("do not use --update with the pinned HackiOS integration")
+            hackios_payload.check_inputs(Path(__file__).parent, ctx.device,
+                Path(ctx.hackios_payload).read_bytes(), ctx.hackios_loader_manifest)
+        except (ValueError, OSError) as error:
+            logger.error (f"HackiOS preflight: {error}")
+            sys.exit (1)
+
     # Get Device Status Config
     device_status = config_data.get ("status")
 
@@ -498,7 +527,7 @@ def main ():
 
     # Compile Boot Shim
     if boot_shim_present:
-        if not compile_boot_shim (config_data.get ("boot_shim"), config_data.get ("uefi_fd")):
+        if not compile_boot_shim (config_data.get ("boot_shim"), config_data.get ("uefi_fd"), Path(ctx.hackios_payload).stat().st_size if ctx.hackios_payload else 0):
             sys.exit (1)
 
     # Prepare UEFI Environment

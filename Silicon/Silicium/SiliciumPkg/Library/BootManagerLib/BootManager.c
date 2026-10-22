@@ -23,6 +23,8 @@
 
 #include "BootManager.h"
 
+VOID XnuLoaderMain (VOID);
+
 //
 // Global Variables
 //
@@ -124,6 +126,8 @@ PlatformBootManagerAfterConsole ()
 
   // Execute Secondary After Console
   DeviceBootManagerAfterConsole ();
+
+  XnuLoaderMain ();
 }
 
 VOID
