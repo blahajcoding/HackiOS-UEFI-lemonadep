@@ -1,0 +1,26 @@
+name: HackiOS host checks
+on:
+  workflow_dispatch:
+  push:
+    branches: [hackios-lemonadep]
+    paths:
+      - 'BootShim/**'
+      - 'Platforms/OnePlus/lemonadepPkg/**'
+      - 'Resources/Scripts/hackios_payload.py'
+      - 'Silicon/Silicium/SiliciumPkg/Library/BootManagerLib/**'
+      - 'build_uefi.py'
+      - 'tests/**'
+      - '.github/workflows/hackios-host.yml'
+permissions:
+  contents: read
+jobs:
+  host:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y clang llvm
+      - run: python -m pip install unicorn==2.1.4
+      - run: python -m unittest discover -s tests -v
